@@ -4,35 +4,95 @@
     <title>Bill Extractor</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
-        body { font-family: Arial; padding: 20px; max-width: 500px;justify-content:center;align-items:center;display:flex;flex-direction:column;margin:auto; }
-        .extractorbox{border:1px solid rgb(2, 2, 2);padding:20px;box-sizing:border-box;width:100%;border-radius:10px;margin:40% 50%;}
-        .field { margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
-        label { font-weight: bold; font-size: 14px; }
-        input[type="text"] { padding: 8px; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        input[type="file"] { margin-bottom: 10px; }
-        button { padding: 10px 20px; background: #42a5f5; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 15px; }
-        button:hover { background: #113a94; }
-        #billFields { margin-top: 20px; }
+        body {
+            font-family: Arial;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .left {
+            width: 40%;
+        }
+
+        .right {
+            width: 60%;
+        }
+
+        .extractorbox {
+            border: 1px solid rgb(2, 2, 2);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .field {
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        label {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #42a5f5;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+            margin-top: 5px;
+        }
+
+        button:hover {
+            background: #113a94;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
 
         #progressContainer {
-    width: 100%;
-    height: 8px;
-    background: #eee;
-    border-radius: 10px;
-    overflow: hidden;
-}
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+        }
 
-#progressBar {
-    width: 0%;
-    height: 100%;
-    background: linear-gradient(90deg, #42a5f5, #1e88e5);
-    transition: width 0.3s ease;
-}
+        #progressBar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #42a5f5, #1e88e5);
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 
 <body>
 
+<div class="left">
 <div class="extractorbox">
 
 <h2>Bill Extractor</h2> 
@@ -40,6 +100,7 @@
 <input type="file" id="fileInput" accept="image/*,.pdf" />
 <br>
 <button onclick="processFile()">Extract Bill Details</button>
+
 <div id="progressContainer" style="display:none; margin-top:15px;">
     <div id="progressBar"></div>
 </div>
@@ -49,30 +110,61 @@
 <div id="billFields">
     <div class="field">
         <label>Date</label>
-        <input type="text" id="billDate" placeholder="—" />
+        <input type="text" id="billDate" />
     </div>
     <div class="field">
         <label>Amount</label>
-        <input type="text" id="billAmount" placeholder="—" />
+        <input type="text" id="billAmount" />
     </div>
     <div class="field">
         <label>Description</label>
-        <input type="text" id="billDesc" placeholder="—" />
+        <input type="text" id="billDesc" />
     </div>
     <div class="field">
         <label>Issued By</label>
-        <input type="text" id="billIssuer" placeholder="—" />
+        <input type="text" id="billIssuer" />
     </div>
 </div>
 
+<button onclick="saveRecord()">Save Record</button>
+
 </div>
+</div>
+
+<div class="right">
+    <h2>Saved Records</h2>
+    <table id="recordsTable">
+        <thead>
+            <tr>
+                <th>Trn ID</th>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Description</th>
+                <th>Issued By</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
 <script>
- const API_KEY = "AIzaSyBuq4UqHA8EyCw1xn-ptEQFHrNl7JHHVhk";
-//const API_KEY = "AIzaSyBaYZO3pawEA1e6BWtRlL-Vs_05HjTCnmA";
-//const API_KEY = "AIzaSyAJemtFiVZUP24-mUh1mBi0SLln9juaG-Y";
-//const API_KEY = "AIzaSyAebWHrJxrHbuWmL-AOc1z3MSsfMncWMOE";
+const API_KEYS = [
+    "AIzaSyBuq4UqHA8EyCw1xn-ptEQFHrNl7JHHVhk",
+    "AIzaSyBaYZO3pawEA1e6BWtRlL-Vs_05HjTCnmA",
+    "AIzaSyAJemtFiVZUP24-mUh1mBi0SLln9juaG-Y",
+    "AIzaSyAebWHrJxrHbuWmL-AOc1z3MSsfMncWMOE",
+    "AIzaSyC1-P1IJ4oIl1zXJqwvjOMWzFCQ_3tQCIU"
+];
 
+// CLEAR OLD DATA ✅
+function clearFields() {
+    $('#billDate').val("");
+    $('#billAmount').val("");
+    $('#billDesc').val("");
+    $('#billIssuer').val("");
+}
 
+// Convert file → Base64
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -82,6 +174,7 @@ function fileToBase64(file) {
     });
 }
 
+// Extract JSON safely
 function extractJSON(text) {
     try {
         text = text.replace(/```json|```/g, '');
@@ -94,125 +187,78 @@ function extractJSON(text) {
     }
 }
 
-// async function processFile() {
-//     const file = document.getElementById("fileInput").files[0];
-//     if (!file) return alert("Please select a file first.");
+// API KEY ROTATION
+async function callAPIWithKeyRotation(base64, fileType, prompt) {
+    for (let i = 0; i < API_KEYS.length; i++) {
+        const key = API_KEYS[i];
+        try {
+            const res = await fetch(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-goog-api-key": key
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: prompt },
+                                { inline_data: { mime_type: fileType, data: base64 } }
+                            ]
+                        }]
+                    })
+                }
+            );
 
-//     const base64 = await fileToBase64(file);
+            const data = await res.json();
 
-//     const prompt = `
-// Extract bill details STRICTLY as JSON only.
+            if (data.error) continue;
 
-// {
-//   "date": "",
-//   "amount": "",
-//   "description": "",
-//   "issuer": ""
-// }
+            const output = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-// Rules:
-// - No markdown
-// - No explanation
-// - Only JSON
-// `;
+            if (!output) continue;
 
-//     try {
-//         const res = await fetch(
-//             "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
-//             {
-//                 method: "POST",
-//                 headers: {
-//                     "Content-Type": "application/json",
-//                     "X-goog-api-key": API_KEY
-//                 },
-//                 body: JSON.stringify({
-//                     contents: [{
-//                         parts: [
-//                             { text: prompt },
-//                             { inline_data: { mime_type: file.type, data: base64 } }
-//                         ]
-//                     }]
-//                 })
-//             }
-//         );
+            return output;
 
-//         const data = await res.json();
-//         const output = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        } catch (err) {
+            continue;
+        }
+    }
 
-//         if (!output) throw "No response from API";
+    throw new Error("All API keys failed");
+}
 
-//         const json = extractJSON(output);
-
-//         if (!json) {
-//             return alert("⚠️ Could not extract bill data. Please try a clearer image.");
-//         }
-
-//         $('#billDate').val(json.date || json.invoice_date || "");
-//         $('#billAmount').val(json.amount || json.total || json.total_amount || "");
-//         $('#billDesc').val(json.description || json.details || "");
-//         $('#billIssuer').val(json.issuer || json.vendor || json.company || "");
-
-//     } catch (err) {
-//         console.error(err);
-//         alert("❌ Error processing file.");
-//     }
-// }
-
-
+// MAIN FUNCTION
 async function processFile() {
     const file = document.getElementById("fileInput").files[0];
     if (!file) return alert("Please select a file first.");
 
-    startLoading(); // START LOADING
+    clearFields(); // ✅ CLEAR OLD VALUES
 
-    const base64 = await fileToBase64(file);
+    startLoading();
 
-    const prompt = `
+    try {
+        const base64 = await fileToBase64(file);
+
+        const prompt = `
 Extract bill details STRICTLY as JSON only.
 
 {
-  "date": "",
+  "date": "MM/DD/YYYY",
   "amount": "",
   "description": "",
   "issuer": ""
 }
-
-Rules:
-- No markdown
-- No explanation
-- Only JSON
 `;
 
-    try {
-        const res = await fetch(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-goog-api-key": API_KEY
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [
-                            { text: prompt },
-                            { inline_data: { mime_type: file.type, data: base64 } }
-                        ]
-                    }]
-                })
-            }
-        );
-
-        const data = await res.json();
-        const output = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (!output) throw "No response from API";
+        const output = await callAPIWithKeyRotation(base64, file.type, prompt);
 
         const json = extractJSON(output);
 
         if (!json) {
-            stopLoading();
-            return alert("⚠️ Could not extract bill data.");
+            alert("⚠️ Could not extract bill data.");
+            return;
         }
 
         $('#billDate').val(json.date || "");
@@ -221,21 +267,45 @@ Rules:
         $('#billIssuer').val(json.issuer || "");
 
     } catch (err) {
-        console.error(err);
-        alert("❌ Error processing file.");
+        alert("❌ All API keys failed.");
     } finally {
-        stopLoading(); // ✅ STOP LOADING
+        stopLoading();
     }
 }
 
+// SAVE TO TABLE ✅
+function saveRecord() {
+    const date = $('#billDate').val();
+    const amount = $('#billAmount').val();
+    const desc = $('#billDesc').val();
+    const issuer = $('#billIssuer').val();
 
+    if (!date || !amount) {
+        alert("Missing required data");
+        return;
+    }
 
+    const trnId = "TRN-" + Date.now(); // unique ID
+
+    const row = `
+        <tr>
+            <td>${trnId}</td>
+            <td>${date}</td>
+            <td>${amount}</td>
+            <td>${desc}</td>
+            <td>${issuer}</td>
+        </tr>
+    `;
+
+    $('#recordsTable tbody').append(row);
+}
+
+// LOADING UI
 function startLoading() {
     $("#progressContainer").show();
     $("#progressBar").css("width", "10%");
     $("button").prop("disabled", true);
 
-    // Fake smooth progress animation
     let progress = 10;
     window.loadingInterval = setInterval(() => {
         if (progress < 90) {
@@ -255,7 +325,6 @@ function stopLoading() {
         $("button").prop("disabled", false);
     }, 500);
 }
-
 </script>
 
 </body>
