@@ -132,7 +132,7 @@
 </div>
 
 <div class="right">
-    <h2>Saved Records</h2>
+    <h2 style="margin-top:40px; margin-left:5px;">Saved Records</h2>
     <table id="recordsTable">
         <thead>
             <tr>
@@ -156,7 +156,7 @@ const API_KEYS = [
     "AIzaSyC1-P1IJ4oIl1zXJqwvjOMWzFCQ_3tQCIU"
 ];
 
-// CLEAR OLD DATA ✅
+// CLEAR OLD DATA 
 function clearFields() {
     $('#billDate').val("");
     $('#billAmount').val("");
@@ -234,7 +234,7 @@ async function processFile() {
     const file = document.getElementById("fileInput").files[0];
     if (!file) return alert("Please select a file first.");
 
-    clearFields(); // ✅ CLEAR OLD VALUES
+    clearFields(); //  CLEAR OLD VALUES
 
     startLoading();
 
@@ -273,7 +273,7 @@ Extract bill details STRICTLY as JSON only.
     }
 }
 
-// SAVE TO TABLE ✅
+// SAVE TO TABLE 
 function saveRecord() {
     const date = $('#billDate').val();
     const amount = $('#billAmount').val();
