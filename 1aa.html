@@ -10,40 +10,27 @@
             display: flex;
             gap: 20px;
         }
-
-        .left {
-            width: 40%;
-        }
-
-        .right {
-            width: 60%;
-        }
-
+        .left { width: 40%; }
+        .right { width: 60%; }
         .extractorbox {
             border: 1px solid rgb(2, 2, 2);
             padding: 20px;
             border-radius: 10px;
         }
-
         .field {
             margin-bottom: 12px;
             display: flex;
             flex-direction: column;
             gap: 4px;
         }
-
-        label {
-            font-weight: bold;
-            font-size: 14px;
-        }
-
+        label { font-weight: bold; font-size: 14px; }
         input[type="text"] {
             padding: 8px;
             width: 100%;
             border: 1px solid #ccc;
             border-radius: 4px;
+            box-sizing: border-box;
         }
-
         button {
             padding: 10px 20px;
             background: #42a5f5;
@@ -54,25 +41,11 @@
             font-size: 15px;
             margin-top: 5px;
         }
-
-        button:hover {
-            background: #113a94;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        table, th, td {
-            border: 1px solid #ccc;
-        }
-
-        th, td {
-            padding: 8px;
-            text-align: center;
-        }
-
+        button:hover { background: #113a94; }
+        button:disabled { background: #aaa; cursor: not-allowed; }
+        table { width: 100%; border-collapse: collapse; }
+        table, th, td { border: 1px solid #ccc; }
+        th, td { padding: 8px; text-align: center; }
         #progressContainer {
             width: 100%;
             height: 8px;
@@ -80,13 +53,41 @@
             border-radius: 10px;
             overflow: hidden;
         }
-
         #progressBar {
             width: 0%;
             height: 100%;
             background: linear-gradient(90deg, #42a5f5, #1e88e5);
             transition: width 0.3s ease;
         }
+
+        .bill-block {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 14px;
+            background: #fafafa;
+        }
+        .bill-block.saved {
+            opacity: 0.4;
+            pointer-events: none;
+            background: #f0f0f0;
+        }
+        .bill-block-title {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .btn-save-one {
+            width: 100%;
+            margin-top: 4px;
+            background: #43a047;
+            font-size: 13px;
+            padding: 8px;
+        }
+        .btn-save-one:hover { background: #2e7d32; }
     </style>
 </head>
 
@@ -95,38 +96,19 @@
 <div class="left">
 <div class="extractorbox">
 
-<h2>Bill Extractor</h2> 
+    <h2>Bill Extractor</h2>
 
-<input type="file" id="fileInput" accept="image/*,.pdf" />
-<br>
-<button onclick="processFile()">Extract Bill Details</button>
+    <input type="file" id="fileInput" accept="image/*,.pdf" multiple />
+    <br>
+    <button onclick="processFiles()">Extract Bill Details</button>
 
-<div id="progressContainer" style="display:none; margin-top:15px;">
-    <div id="progressBar"></div>
-</div>
-
-<hr>
-
-<div id="billFields">
-    <div class="field">
-        <label>Date</label>
-        <input type="text" id="billDate" />
+    <div id="progressContainer" style="display:none; margin-top:15px;">
+        <div id="progressBar"></div>
     </div>
-    <div class="field">
-        <label>Amount</label>
-        <input type="text" id="billAmount" />
-    </div>
-    <div class="field">
-        <label>Description</label>
-        <input type="text" id="billDesc" />
-    </div>
-    <div class="field">
-        <label>Issued By</label>
-        <input type="text" id="billIssuer" />
-    </div>
-</div>
 
-<button onclick="saveRecord()">Save Record</button>
+    <hr>
+
+    <div id="billsList"></div>
 
 </div>
 </div>
@@ -150,21 +132,10 @@
 <script>
 const API_KEYS = [
     "AIzaSyBuq4UqHA8EyCw1xn-ptEQFHrNl7JHHVhk",
-    "AIzaSyBaYZO3pawEA1e6BWtRlL-Vs_05HjTCnmA",
-    "AIzaSyAJemtFiVZUP24-mUh1mBi0SLln9juaG-Y",
-    "AIzaSyAebWHrJxrHbuWmL-AOc1z3MSsfMncWMOE",
-    "AIzaSyC1-P1IJ4oIl1zXJqwvjOMWzFCQ_3tQCIU"
+    "AIzaSyBGQ-Hj4sdwrRJ75Kgzzbxyy15TYnJGlHA"
+
 ];
 
-// CLEAR OLD DATA 
-function clearFields() {
-    $('#billDate').val("");
-    $('#billAmount').val("");
-    $('#billDesc').val("");
-    $('#billIssuer').val("");
-}
-
-// Convert file → Base64
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -174,32 +145,23 @@ function fileToBase64(file) {
     });
 }
 
-// Extract JSON safely
 function extractJSON(text) {
     try {
         text = text.replace(/```json|```/g, '');
         const match = text.match(/\{[\s\S]*\}/);
         if (!match) return null;
         return JSON.parse(match[0]);
-    } catch (e) {
-        console.error("JSON parse error:", e);
-        return null;
-    }
+    } catch (e) { return null; }
 }
 
-// API KEY ROTATION
 async function callAPIWithKeyRotation(base64, fileType, prompt) {
     for (let i = 0; i < API_KEYS.length; i++) {
-        const key = API_KEYS[i];
         try {
             const res = await fetch(
                 "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
                 {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-goog-api-key": key
-                    },
+                    headers: { "Content-Type": "application/json", "X-goog-api-key": API_KEYS[i] },
                     body: JSON.stringify({
                         contents: [{
                             parts: [
@@ -210,116 +172,108 @@ async function callAPIWithKeyRotation(base64, fileType, prompt) {
                     })
                 }
             );
-
             const data = await res.json();
-
             if (data.error) continue;
-
             const output = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
             if (!output) continue;
-
             return output;
-
-        } catch (err) {
-            continue;
-        }
+        } catch (err) { continue; }
     }
-
     throw new Error("All API keys failed");
 }
 
-// MAIN FUNCTION
-async function processFile() {
-    const file = document.getElementById("fileInput").files[0];
-    if (!file) return alert("Please select a file first.");
+async function processFiles() {
+    const files = Array.from(document.getElementById('fileInput').files);
+    if (!files.length) return alert("Please select at least one file.");
 
-    clearFields(); //  CLEAR OLD VALUES
-
+    $('#billsList').empty();
     startLoading();
 
-    try {
-        const base64 = await fileToBase64(file);
-
-        const prompt = `
-Extract bill details STRICTLY as JSON only.
-
+    const prompt = `Extract bill details STRICTLY as JSON only.
 {
   "date": "MM/DD/YYYY",
   "amount": "",
   "description": "",
   "issuer": ""
 }
+  
+Rules:
+- Date MUST be in MM/DD/YYYY format
+- Amount MUST be numeric with 2 decimal places
+- No markdown
+- No explanation
+- Only JSON
 `;
 
-        const output = await callAPIWithKeyRotation(base64, file.type, prompt);
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const blockId = 'bill-' + i;
 
-        const json = extractJSON(output);
+        $('#billsList').append(
+            '<div class="bill-block" id="' + blockId + '">' +
+                '<div class="bill-block-title">' + file.name + '</div>' +
+                '<div class="field"><label>Date</label><input type="text" id="date-' + i + '" placeholder="Extracting..." /></div>' +
+                '<div class="field"><label>Amount</label><input type="text" id="amount-' + i + '" placeholder="Extracting..." /></div>' +
+                '<div class="field"><label>Description</label><input type="text" id="desc-' + i + '" placeholder="Extracting..." /></div>' +
+                '<div class="field"><label>Issued By</label><input type="text" id="issuer-' + i + '" placeholder="Extracting..." /></div>' +
+                '<button class="btn-save-one" id="savebtn-' + i + '" onclick="saveOne(' + i + ')">Save Record</button>' +
+            '</div>'
+        );
 
-        if (!json) {
-            alert("⚠️ Could not extract bill data.");
-            return;
+        try {
+            const base64 = await fileToBase64(file);
+            const output = await callAPIWithKeyRotation(base64, file.type, prompt);
+            const json = extractJSON(output);
+
+            if (json) {
+                $('#date-' + i).val(json.date || '').attr('placeholder', '');
+                $('#amount-' + i).val(json.amount || '').attr('placeholder', '');
+                $('#desc-' + i).val(json.description || '').attr('placeholder', '');
+                $('#issuer-' + i).val(json.issuer || '').attr('placeholder', '');
+            } else {
+                $('#date-' + i + ', #amount-' + i + ', #desc-' + i + ', #issuer-' + i).attr('placeholder', 'Could not extract');
+            }
+        } catch (err) {
+            $('#date-' + i + ', #amount-' + i + ', #desc-' + i + ', #issuer-' + i).attr('placeholder', 'Error');
         }
 
-        $('#billDate').val(json.date || "");
-        $('#billAmount').val(json.amount || "");
-        $('#billDesc').val(json.description || "");
-        $('#billIssuer').val(json.issuer || "");
-
-    } catch (err) {
-        alert("❌ All API keys failed.");
-    } finally {
-        stopLoading();
+        var pct = Math.round(((i + 1) / files.length) * 100);
+        $('#progressBar').css('width', pct + '%');
     }
+
+    stopLoading();
 }
 
-// SAVE TO TABLE 
-function saveRecord() {
-    const date = $('#billDate').val();
-    const amount = $('#billAmount').val();
-    const desc = $('#billDesc').val();
-    const issuer = $('#billIssuer').val();
+function saveOne(index) {
+    var date   = $('#date-' + index).val();
+    var amount = $('#amount-' + index).val();
+    var desc   = $('#desc-' + index).val();
+    var issuer = $('#issuer-' + index).val();
 
-    if (!date || !amount) {
-        alert("Missing required data");
-        return;
-    }
+    if (!date && !amount) return alert("No data to save.");
 
-    const trnId = "TRN-" + Date.now(); // unique ID
-
-    const row = `
-        <tr>
-            <td>${trnId}</td>
-            <td>${date}</td>
-            <td>${amount}</td>
-            <td>${desc}</td>
-            <td>${issuer}</td>
-        </tr>
-    `;
-
+    var trnId = "TRN-" + Date.now();
+    var row = '<tr>' +
+        '<td>' + trnId + '</td>' +
+        '<td>' + (date || '—') + '</td>' +
+        '<td>' + (amount || '—') + '</td>' +
+        '<td>' + (desc || '—') + '</td>' +
+        '<td>' + (issuer || '—') + '</td>' +
+    '</tr>';
     $('#recordsTable tbody').append(row);
+
+    // Freeze the block to prevent re-saving
+    $('#bill-' + index).addClass('saved');
 }
 
-// LOADING UI
 function startLoading() {
     $("#progressContainer").show();
-    $("#progressBar").css("width", "10%");
+    $("#progressBar").css("width", "0%");
     $("button").prop("disabled", true);
-
-    let progress = 10;
-    window.loadingInterval = setInterval(() => {
-        if (progress < 90) {
-            progress += Math.random() * 10;
-            $("#progressBar").css("width", progress + "%");
-        }
-    }, 300);
 }
 
 function stopLoading() {
-    clearInterval(window.loadingInterval);
-    $("#progressBar").css("width", "100%");
-
-    setTimeout(() => {
+    setTimeout(function() {
         $("#progressContainer").hide();
         $("#progressBar").css("width", "0%");
         $("button").prop("disabled", false);
