@@ -66,6 +66,7 @@
             padding: 14px;
             margin-bottom: 14px;
             background: #fafafa;
+            
         }
         .bill-block.saved {
             opacity: 0.4;
@@ -81,13 +82,20 @@
             text-overflow: ellipsis;
         }
         .btn-save-one {
-            width: 100%;
+            width: 15%;
             margin-top: 4px;
-            background: #43a047;
+            background: #42a5f5;
             font-size: 13px;
             padding: 8px;
         }
-        .btn-save-one:hover { background: #2e7d32; }
+        .btn-save-one:hover { background: #113a94; }
+
+
+        .extractorbox #billsList {
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        
     </style>
 </head>
 
@@ -102,6 +110,8 @@
     <br>
     <button onclick="processFiles()">Extract Bill Details</button>
 
+    <span> <button onclick="saveAll()">Save All</button></span>
+
     <div id="progressContainer" style="display:none; margin-top:15px;">
         <div id="progressBar"></div>
     </div>
@@ -109,6 +119,7 @@
     <hr>
 
     <div id="billsList"></div>
+   
 
 </div>
 </div>
@@ -131,8 +142,11 @@
 
 <script>
 const API_KEYS = [
-    "AIzaSyBuq4UqHA8EyCw1xn-ptEQFHrNl7JHHVhk",
-    "AIzaSyBGQ-Hj4sdwrRJ75Kgzzbxyy15TYnJGlHA"
+    "AIzaSyBS92fBfN8npNe39kZ8SMB5E34l9C3DXK8",
+    "AIzaSyCGeGYyvz0R9zNzzg0D0hmKMI1JBco_1ZA",
+    "AIzaSyCx-2UjWq_lVFu7liVAvsIG1Hy5JtzLOos",
+    "AIzaSyBFlefVyZnjyf1Mp9Gy_sCJ_dK3z-5XMwY",
+    "AIzaSyBGAXTEeTJunfWgrKFa5yxXKVa9ZpYSBSU",
 
 ];
 
@@ -265,6 +279,46 @@ function saveOne(index) {
     // Freeze the block to prevent re-saving
     $('#bill-' + index).addClass('saved');
 }
+
+
+
+
+function saveAll() {
+    const totalBlocks = $('[id^="bill-"]').length;
+
+    if (totalBlocks === 0) {
+        alert("No records to save.");
+        return;
+    }
+
+    let savedCount = 0;
+
+    for (let i = 0; i < totalBlocks; i++) {
+        const block = $('#bill-' + i);
+
+        // Skip already saved (frozen) blocks
+        if (block.hasClass('saved')) continue;
+
+        // Check if there's at least some data
+        const date   = $('#date-' + i).val();
+        const amount = $('#amount-' + i).val();
+        const desc   = $('#desc-' + i).val();
+        const issuer = $('#issuer-' + i).val();
+
+        if (!date && !amount && !desc && !issuer) continue;
+
+        // Reuse existing function
+        saveOne(i);
+        savedCount++;
+    }
+
+    if (savedCount === 0) {
+        alert("No new records to save.");
+    } else {
+        // alert(savedCount + " records saved successfully!");
+    }
+}
+
 
 function startLoading() {
     $("#progressContainer").show();
